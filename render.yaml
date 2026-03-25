@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: truckease-backend
+    runtime: python
+    plan: free
+    buildCommand: ./build.sh
+    startCommand: gunicorn config.asgi:application -k uvicorn.workers.UvicornWorker
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: truckease-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: .onrender.com
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://your-frontend.onrender.com
+      - key: DJANGO_SUPERUSER_EMAIL
+        value: admin@truckease.com
+      - key: DJANGO_SUPERUSER_PASSWORD
+        value: Truck!213
+      - key: DJANGO_SUPERUSER_USERNAME
+        value: TruckEase
+
+databases:
+  - name: truckease-db
+    plan: free
+    
