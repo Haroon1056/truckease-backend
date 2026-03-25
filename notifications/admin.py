@@ -1,5 +1,11 @@
 from django.contrib import admin
 from .models import Notification, UserDevice
 
-admin.site.register(Notification)
-admin.site.register(UserDevice)
+class NotificationAdmin(admin.ModelAdmin):
+    pass
+
+class UserDeviceAdmin(admin.ModelAdmin):
+    pass
+
+admin.site.register(Notification, NotificationAdmin)
+admin.site.register(UserDevice, UserDeviceAdmin)

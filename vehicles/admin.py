@@ -1,4 +1,7 @@
 from django.contrib import admin
 from .models import Vehicle
 
-admin.site.register(Vehicle)
+class VehicleAdmin(admin.ModelAdmin):
+    pass
+
+admin.site.register(Vehicle, VehicleAdmin)
