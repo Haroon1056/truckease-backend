@@ -151,7 +151,7 @@ else:
         }
 
 # LeLK8rbdJaLrbeb3
-# postgresql://postgres:LeLK8rbdJaLrbeb3@db.bpvpjsitlwwpajtguauu.supabase.co:5432/postgres
+# postgresql://postgres.bpvpjsitlwwpajtguauu:LeLK8rbdJaLrbeb3@aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres?sslmode=require
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
