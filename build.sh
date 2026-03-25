@@ -1,9 +1,13 @@
 #!/bin/bash
 set -o errexit
 
+
 echo "========================================="
 echo "Building TruckEase Backend"
 echo "========================================="
+
+# Add this after the echo statements
+export DJANGO_SETTINGS_MODULE=config.settings
 
 # Upgrade pip
 echo "Upgrading pip..."
