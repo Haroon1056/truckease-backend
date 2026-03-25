@@ -5,17 +5,13 @@ echo "========================================="
 echo "Building TruckEase Backend"
 echo "========================================="
 
-# Upgrade pip and setuptools
-echo "Upgrading pip and setuptools..."
+# Upgrade pip
+echo "Upgrading pip..."
 python -m pip install --upgrade pip setuptools wheel
 
-# Install dependencies with special handling for Pillow
+# Install dependencies
 echo "Installing dependencies..."
-pip install --upgrade pip setuptools wheel
-pip install -r requirements.txt || {
-    echo "Retrying with --no-cache-dir..."
-    pip install --no-cache-dir -r requirements.txt
-}
+pip install -r requirements.txt
 
 # Collect static files
 echo "Collecting static files..."
@@ -23,10 +19,7 @@ python manage.py collectstatic --noinput
 
 # Run migrations
 echo "Running database migrations..."
-python manage.py migrate --noinput || {
-    echo "Migration failed, retrying..."
-    python manage.py migrate --noinput
-}
+python manage.py migrate --noinput
 
 # Create superuser
 echo "Creating superuser..."
@@ -49,6 +42,18 @@ if not User.objects.filter(email=email).exists():
     print(f"Superuser created: {email}")
 else:
     print(f"Superuser already exists: {email}")
+
+# Create test users for demo (optional)
+if not User.objects.filter(email='demo@example.com').exists():
+    User.objects.create_user(
+        email='demo@example.com',
+        password='demo123',
+        first_name='Demo',
+        last_name='User',
+        user_type='customer',
+        phone_number='1234567899'
+    )
+    print("Demo user created: demo@example.com")
 EOF
 
 echo "========================================="

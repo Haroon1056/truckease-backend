@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 from decouple import config
 from datetime import timedelta
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -115,17 +116,42 @@ ASGI_APPLICATION = 'config.asgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # Database Configuration
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
-        'PORT': config('DB_PORT', default='5432'),
-    }
-}
+DATABASE_URL = config('DATABASE_URL', default=None)
 
+if DATABASE_URL:
+    # Production database from Render/Supabase
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
+else:
+    # Development database (PostgreSQL or SQLite)
+    if config('DB_NAME', default=None):
+        # PostgreSQL for development
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': config('DB_NAME'),
+                'USER': config('DB_USER'),
+                'PASSWORD': config('DB_PASSWORD'),
+                'HOST': config('DB_HOST'),
+                'PORT': config('DB_PORT', default='5432'),
+            }
+        }
+    else:
+        # SQLite for local development
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
+
+# LeLK8rbdJaLrbeb3
+# postgresql://postgres:LeLK8rbdJaLrbeb3@db.bpvpjsitlwwpajtguauu.supabase.co:5432/postgres
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
