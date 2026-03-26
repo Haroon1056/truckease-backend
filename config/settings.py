@@ -16,10 +16,7 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(','
 if not DEBUG:
     ALLOWED_HOSTS.append('.onrender.com')
     
-# Add this for CSRF protection
-CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com', 'https://truckease-backend.onrender.com']
-
-# Cookie settings for Render (CRITICAL FIX)
+# Cookie and CSRF settings (apply regardless of DEBUG)
 SESSION_COOKIE_DOMAIN = '.onrender.com'
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
@@ -30,7 +27,11 @@ CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
 
-# Proxy settings
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.onrender.com',
+    'https://truckease-backend.onrender.com',
+]
+
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -192,6 +193,6 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
