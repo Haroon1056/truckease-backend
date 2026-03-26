@@ -1,7 +1,6 @@
 #!/bin/bash
 set -o errexit
 
-
 echo "========================================="
 echo "Building TruckEase Backend"
 echo "========================================="
@@ -25,39 +24,58 @@ python manage.py collectstatic --noinput
 echo "Running database migrations..."
 python manage.py migrate --noinput
 
-# Create superuser
+# Create superuser (delete existing and create fresh one)
 echo "Creating superuser..."
 python manage.py shell <<EOF
-import os
 from accounts.models import User
 
-email = os.environ.get('DJANGO_SUPERUSER_EMAIL', 'admin@truckease.com')
-password = os.environ.get('DJANGO_SUPERUSER_PASSWORD', 'Truck!213')
-username = os.environ.get('DJANGO_SUPERUSER_USERNAME', 'TruckEase')
+# Delete all existing superusers first to avoid conflicts
+deleted_count = User.objects.filter(is_superuser=True).delete()[0]
+print(f"Deleted {deleted_count} existing superuser(s)")
 
-if not User.objects.filter(email=email).exists():
-    User.objects.create_superuser(
-        email=email,
-        password=password,
-        first_name='System',
-        last_name='Admin',
-        user_type='admin'
-    )
-    print(f"Superuser created: {email}")
-else:
-    print(f"Superuser already exists: {email}")
+# Create new superuser
+email = "admin@truckease.com"
+password = "Admin123!"
+first_name = "System"
+last_name = "Admin"
 
-# Create test users for demo (optional)
-if not User.objects.filter(email='demo@example.com').exists():
+user = User.objects.create_superuser(
+    email=email,
+    password=password,
+    first_name=first_name,
+    last_name=last_name,
+    user_type='admin',
+    phone_number="0000000000"
+)
+print(f"Superuser created: {email} / {password}")
+
+# Create test customer user
+if not User.objects.filter(email='customer@example.com').exists():
     User.objects.create_user(
-        email='demo@example.com',
-        password='demo123',
-        first_name='Demo',
-        last_name='User',
+        email='customer@example.com',
+        password='customer123',
+        first_name='Test',
+        last_name='Customer',
         user_type='customer',
         phone_number='1234567899'
     )
-    print("Demo user created: demo@example.com")
+    print("Test customer created: customer@example.com / customer123")
+
+# Create test driver user
+if not User.objects.filter(email='driver@example.com').exists():
+    User.objects.create_user(
+        email='driver@example.com',
+        password='driver123',
+        first_name='Test',
+        last_name='Driver',
+        user_type='driver',
+        phone_number='9876543210'
+    )
+    print("Test driver created: driver@example.com / driver123")
+
+print("\n=== All Users ===")
+for u in User.objects.all():
+    print(f"  {u.email} ({u.user_type}) - is_superuser: {u.is_superuser}")
 EOF
 
 echo "========================================="

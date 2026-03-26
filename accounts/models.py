@@ -10,11 +10,10 @@ class UserManager(BaseUserManager):
             raise ValueError('The Email field must be set')
         email = self.normalize_email(email)
         
-        # Set username to email if not provided
-        if 'username' not in extra_fields or not extra_fields.get('username'):
-            extra_fields['username'] = email
-            
-        user = self.model(email=email, **extra_fields)
+        # Create username from email (required by AbstractUser)
+        username = email.split('@')[0]
+        
+        user = self.model(email=email, username=username, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -23,11 +22,7 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
-        
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
+        extra_fields.setdefault('user_type', 'admin')
         
         return self.create_user(email, password, **extra_fields)
 
@@ -38,11 +33,9 @@ class User(AbstractUser):
         ('admin', 'Admin'),
     )
     
-    # Make email unique and required
     email = models.EmailField(_('email address'), unique=True)
-    username = models.CharField(max_length=150, unique=True)
     user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES, default='customer')
-    phone_number = models.CharField(max_length=15, unique=True, blank=True, null=True)
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
     date_of_birth = models.DateField(blank=True, null=True)
     address = models.TextField(blank=True, null=True)
@@ -60,9 +53,3 @@ class User(AbstractUser):
     
     def __str__(self):
         return f"{self.email} ({self.user_type})"
-    
-    def save(self, *args, **kwargs):
-        # Auto-set username from email if not set
-        if not self.username:
-            self.username = self.email
-        super().save(*args, **kwargs)

@@ -11,27 +11,31 @@ from .models import User
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 
 from django.http import JsonResponse
-from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.csrf import csrf_exempt
 import traceback
 
 @csrf_exempt
-@staff_member_required
-def debug_user_admin(request):
-    """Debug endpoint to see what's wrong with user admin"""
+def admin_test(request):
+    """Test admin functionality"""
     try:
         from .models import User
         from django.contrib import admin
-        from django.contrib.admin.sites import site
         
-        # Get the admin class for User
-        user_admin = site._registry[User]
+        # Try to create a test user
+        test_user, created = User.objects.get_or_create(
+            email="test_admin@example.com",
+            defaults={
+                'first_name': 'Test',
+                'last_name': 'Admin',
+                'user_type': 'admin',
+                'is_staff': True
+            }
+        )
         
         return JsonResponse({
             'status': 'success',
-            'admin_class': str(user_admin.__class__),
-            'fields': [f.name for f in User._meta.fields],
-            'message': 'Admin is working'
+            'users_count': User.objects.count(),
+            'test_user_created': created
         })
     except Exception as e:
         return JsonResponse({
