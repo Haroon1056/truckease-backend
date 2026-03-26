@@ -19,41 +19,44 @@ import sys
 def debug_admin_error(request):
     """Debug endpoint to capture the exact admin error"""
     try:
-        # Try to import and use the admin module
         from django.contrib import admin
         from django.contrib.admin.sites import site
+        from django.contrib.auth.forms import UserCreationForm
         from .models import User
         
         # Get the admin class for User
-        user_admin = site._registry[User]
+        user_admin = site._registry.get(User)
         
-        # Try to create a form instance
-        from django.contrib.admin.forms import AdminUserCreationForm
+        if not user_admin:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'User model is not registered in admin'
+            }, status=500)
         
-        # Try to render the add form
-        request_method = request.GET.get('method', 'add')
-        
-        if request_method == 'add':
-            # Simulate the add view
-            from django.contrib.admin.views.main import ChangeList
-            from django.contrib.admin.options import IS_POPUP_VAR
-            
-            # This will trigger the error if there is one
-            form = AdminUserCreationForm()
+        # Try to create the form using the admin's get_form method
+        try:
+            # Get the form class that the admin uses
+            form_class = user_admin.get_form(request)
+            # Try to instantiate it
+            form = form_class()
             
             return JsonResponse({
                 'status': 'success',
                 'admin_class': str(user_admin.__class__),
-                'form_fields': list(form.fields.keys()),
-                'message': 'Form created successfully'
-            })
-        else:
-            return JsonResponse({
-                'status': 'success',
-                'admin_class': str(user_admin.__class__),
+                'form_fields': list(form.fields.keys()) if hasattr(form, 'fields') else [],
                 'model_fields': [f.name for f in User._meta.fields],
-                'message': 'Admin class loaded'
+                'message': 'Admin form created successfully'
             })
+        except Exception as form_error:
+            # Capture the actual admin form error
+            return JsonResponse({
+                'status': 'error',
+                'error_type': type(form_error).__name__,
+                'error_message': str(form_error),
+                'traceback': traceback.format_exc().split('\n'),
+                'admin_class': str(user_admin.__class__),
+                'model_fields': [f.name for f in User._meta.fields]
+            }, status=500)
             
     except Exception as e:
         # Capture the full error
@@ -65,6 +68,33 @@ def debug_admin_error(request):
             'django_version': __import__('django').get_version()
         }
         return JsonResponse(error_details, status=500)
+    
+from django.http import HttpResponse
+from django.contrib.admin.views.decorators import staff_member_required
+
+@staff_member_required
+def simple_admin_test(request):
+    """Simple test to see if admin is accessible"""
+    try:
+        from django.contrib import admin
+        from .models import User
+        
+        # Try to get the admin URL for adding a user
+        from django.urls import reverse
+        
+        return HttpResponse(f"""
+        <html>
+        <body>
+            <h1>Admin Test</h1>
+            <p>User model fields: {[f.name for f in User._meta.fields]}</p>
+            <p>User admin registered: {admin.site._registry.get(User) is not None}</p>
+            <p>Admin URL: /admin/accounts/user/</p>
+            <p><a href="/admin/accounts/user/add/">Try to add user directly</a></p>
+        </body>
+        </html>
+        """)
+    except Exception as e:
+        return HttpResponse(f"Error: {e}", status=500)
 
 class RegisterView(APIView):
     """User registration view"""
