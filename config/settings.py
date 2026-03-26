@@ -170,6 +170,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8081",
 ]
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Channel layers
 CHANNEL_LAYERS = {
@@ -183,8 +184,8 @@ if not DEBUG:
     ALLOWED_HOSTS.append(".onrender.com")
 
     CSRF_TRUSTED_ORIGINS = [
-        "https://*.onrender.com",
-    ]
+    "https://truckease-backend.onrender.com",
+]
 
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     USE_X_FORWARDED_HOST = True
