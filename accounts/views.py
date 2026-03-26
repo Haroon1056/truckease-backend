@@ -13,36 +13,58 @@ from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import traceback
+import sys
 
 @csrf_exempt
-def admin_test(request):
-    """Test admin functionality"""
+def debug_admin_error(request):
+    """Debug endpoint to capture the exact admin error"""
     try:
-        from .models import User
+        # Try to import and use the admin module
         from django.contrib import admin
+        from django.contrib.admin.sites import site
+        from .models import User
         
-        # Try to create a test user
-        test_user, created = User.objects.get_or_create(
-            email="test_admin@example.com",
-            defaults={
-                'first_name': 'Test',
-                'last_name': 'Admin',
-                'user_type': 'admin',
-                'is_staff': True
-            }
-        )
+        # Get the admin class for User
+        user_admin = site._registry[User]
         
-        return JsonResponse({
-            'status': 'success',
-            'users_count': User.objects.count(),
-            'test_user_created': created
-        })
+        # Try to create a form instance
+        from django.contrib.admin.forms import AdminUserCreationForm
+        
+        # Try to render the add form
+        request_method = request.GET.get('method', 'add')
+        
+        if request_method == 'add':
+            # Simulate the add view
+            from django.contrib.admin.views.main import ChangeList
+            from django.contrib.admin.options import IS_POPUP_VAR
+            
+            # This will trigger the error if there is one
+            form = AdminUserCreationForm()
+            
+            return JsonResponse({
+                'status': 'success',
+                'admin_class': str(user_admin.__class__),
+                'form_fields': list(form.fields.keys()),
+                'message': 'Form created successfully'
+            })
+        else:
+            return JsonResponse({
+                'status': 'success',
+                'admin_class': str(user_admin.__class__),
+                'model_fields': [f.name for f in User._meta.fields],
+                'message': 'Admin class loaded'
+            })
+            
     except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'error': str(e),
-            'traceback': traceback.format_exc()
-        }, status=500)
+        # Capture the full error
+        error_details = {
+            'error_type': type(e).__name__,
+            'error_message': str(e),
+            'traceback': traceback.format_exc().split('\n'),
+            'python_version': sys.version,
+            'django_version': __import__('django').get_version()
+        }
+        return JsonResponse(error_details, status=500)
 
 class RegisterView(APIView):
     """User registration view"""
