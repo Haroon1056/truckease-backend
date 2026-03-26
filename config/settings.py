@@ -15,21 +15,25 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 if not DEBUG:
     ALLOWED_HOSTS.append('.onrender.com')
-    
-# Cookie and CSRF settings (apply regardless of DEBUG)
-SESSION_COOKIE_DOMAIN = '.onrender.com'
+
+# Remove these lines - they are causing CSRF issues
+# SESSION_COOKIE_DOMAIN = '.onrender.com'
+# CSRF_COOKIE_DOMAIN = '.onrender.com'
+
+# Keep these but make sure they're correct
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
-CSRF_COOKIE_DOMAIN = '.onrender.com'
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
 
+# Trusted origins - keep these
 CSRF_TRUSTED_ORIGINS = [
     'https://*.onrender.com',
     'https://truckease-backend.onrender.com',
+    'http://localhost:8000',
 ]
 
 USE_X_FORWARDED_HOST = True
