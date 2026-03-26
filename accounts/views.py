@@ -10,6 +10,36 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import User
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 
+from django.http import JsonResponse
+from django.contrib.admin.views.decorators import staff_member_required
+from django.views.decorators.csrf import csrf_exempt
+import traceback
+
+@csrf_exempt
+@staff_member_required
+def debug_user_admin(request):
+    """Debug endpoint to see what's wrong with user admin"""
+    try:
+        from .models import User
+        from django.contrib import admin
+        from django.contrib.admin.sites import site
+        
+        # Get the admin class for User
+        user_admin = site._registry[User]
+        
+        return JsonResponse({
+            'status': 'success',
+            'admin_class': str(user_admin.__class__),
+            'fields': [f.name for f in User._meta.fields],
+            'message': 'Admin is working'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }, status=500)
+
 class RegisterView(APIView):
     """User registration view"""
     permission_classes = [AllowAny]
