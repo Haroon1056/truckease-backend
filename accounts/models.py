@@ -11,8 +11,8 @@ class UserManager(BaseUserManager):
         email = self.normalize_email(email)
         
         # Set username to email if not provided
-        if 'username' not in extra_fields:
-            extra_fields.setdefault('username', email)
+        if 'username' not in extra_fields or not extra_fields.get('username'):
+            extra_fields['username'] = email
             
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
@@ -62,7 +62,7 @@ class User(AbstractUser):
         return f"{self.email} ({self.user_type})"
     
     def save(self, *args, **kwargs):
-        # Set username to email if not provided
+        # Auto-set username from email if not set
         if not self.username:
             self.username = self.email
         super().save(*args, **kwargs)
