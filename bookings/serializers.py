@@ -52,6 +52,12 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         if value <= 0:
             raise serializers.ValidationError("Cargo weight must be greater than 0")
         return value
+    
+    def create(self, validated_data):
+        # Set base_fare and total_amount
+        validated_data['base_fare'] = 100  # Default base fare
+        validated_data['total_amount'] = validated_data['base_fare']
+        return super().create(validated_data)
 
 class BookingUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating booking (driver actions)"""

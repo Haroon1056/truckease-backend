@@ -42,7 +42,12 @@ class BookingListCreateView(generics.ListCreateAPIView):
         if self.request.user.user_type != 'customer':
             raise PermissionError("Only customers can create bookings")
         
-        booking = serializer.save(customer=self.request.user)
+        # Add default values
+        booking = serializer.save(
+            customer=self.request.user,
+            base_fare=100,  # Default base fare
+            total_amount=100  # Initial total amount
+        )
         
         # Create history entry
         BookingHistory.objects.create(
