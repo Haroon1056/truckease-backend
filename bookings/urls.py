@@ -16,4 +16,7 @@ urlpatterns = [
     
     # Booking history
     path('bookings/<int:booking_id>/history/', views.BookingHistoryView.as_view(), name='booking-history'),
+    
+    # NEW: Available bookings for drivers
+    path('bookings/available/', views.AvailableBookingsView.as_view(), name='available-bookings'),
 ]

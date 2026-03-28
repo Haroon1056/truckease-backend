@@ -93,6 +93,22 @@ class BookingDetailView(generics.RetrieveUpdateAPIView):
             )
         
         return response
+    
+class AvailableBookingsView(generics.ListAPIView):
+    """View for drivers to see available (unassigned) bookings"""
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = BookingSerializer
+    
+    def get_queryset(self):
+        # Only drivers can access this
+        if self.request.user.user_type != 'driver':
+            return Booking.objects.none()
+        
+        # Return bookings that are pending and have no driver assigned
+        return Booking.objects.filter(
+            status='pending',
+            driver__isnull=True
+        )
 
 class AcceptBookingView(APIView):
     """Driver accepts a booking"""
