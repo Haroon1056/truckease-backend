@@ -11,11 +11,9 @@ class RegisterSerializer(serializers.ModelSerializer):
                   'last_name', 'user_type', 'phone_number']
     
     def validate(self, data):
-        # Check if passwords match
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError({"confirm_password": "Passwords do not match"})
         
-        # Check user type
         if data['user_type'] not in ['customer', 'driver']:
             raise serializers.ValidationError({"user_type": "Must be customer or driver"})
         
@@ -30,20 +28,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         return data
     
     def create(self, validated_data):
-        # Remove confirm_password
         validated_data.pop('confirm_password')
-        
-        # Get password
         password = validated_data.pop('password')
         
-        # Set username to email temporarily (will be set in model save)
-        validated_data['username'] = validated_data['email']
-        
-        # Create user using create_user method (handles password hashing)
         user = User.objects.create_user(**validated_data)
-        user.set_password(password)
-        user.save()
-        
         return user
 
 class LoginSerializer(serializers.Serializer):
