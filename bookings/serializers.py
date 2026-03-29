@@ -35,11 +35,13 @@ class BookingCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
+            'id',
             'pickup_address', 'pickup_latitude', 'pickup_longitude',
             'dropoff_address', 'dropoff_latitude', 'dropoff_longitude',
             'cargo_type', 'cargo_weight', 'cargo_description', 'is_hazardous',
             'pickup_time', 'customer_notes'
         ]
+        read_only_fields = ['id']
     
     def validate_pickup_time(self, value):
         """Validate pickup time is in the future"""
