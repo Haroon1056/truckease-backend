@@ -9,6 +9,7 @@ from decimal import Decimal
 BASE_FARE = Decimal('100.00')
 PER_TON_RATE = Decimal('50.00')
 DEFAULT_PRICE_PER_KM = Decimal('60.00')
+WAITING_CHARGE_PER_HOUR = Decimal('100.00')
 
 class BookingSerializer(serializers.ModelSerializer):
     """Main booking serializer"""
@@ -73,7 +74,6 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             price_per_km = vehicle.base_price_per_km or DEFAULT_PRICE_PER_KM
             
             # Calculate distance (for now using default, can be calculated from coordinates)
-            # In production, calculate actual distance between pickup and dropoff
             distance_km = Decimal('10.00')  # Default estimated distance
             
             # Calculate charges
@@ -81,21 +81,19 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             distance_charge = distance_km * price_per_km
             weight_charge = cargo_weight * PER_TON_RATE
             
-            # Calculate total
+            # Total includes all charges (waiting charge will be added when trip completes)
             total_amount = base_fare + distance_charge + weight_charge
             
             # Add to data
             data['base_fare'] = base_fare
             data['distance_charge'] = distance_charge
-            data['waiting_charge'] = weight_charge  # Using weight charge as waiting charge
+            data['waiting_charge'] = Decimal('0.00')  # Waiting charge starts at 0
             data['total_amount'] = total_amount
         
         return data
     
     def create(self, validated_data):
         """Create booking with calculated pricing"""
-        # Remove any fields that shouldn't be passed directly
-        # The validated_data already contains the calculated pricing
         return super().create(validated_data)
 
 class BookingUpdateSerializer(serializers.ModelSerializer):
@@ -123,6 +121,19 @@ class BookingUpdateSerializer(serializers.ModelSerializer):
                 return data
             raise serializers.ValidationError(f"Cannot change status from {instance.status} to {data['status']}")
         return data
+    
+    def update(self, instance, validated_data):
+        """Update booking and recalculate total when waiting charge is added"""
+        # Update the instance
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # If waiting_charge is being updated, recalculate total
+        if 'waiting_charge' in validated_data and instance.status == 'completed':
+            instance.total_amount = instance.base_fare + instance.distance_charge + instance.waiting_charge
+        
+        instance.save()
+        return instance
 
 class BookingHistorySerializer(serializers.ModelSerializer):
     """Serializer for booking history"""
