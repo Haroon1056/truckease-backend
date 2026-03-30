@@ -11,9 +11,30 @@ from .serializers import (
     BookingUpdateSerializer, BookingHistorySerializer
 )
 from accounts.permissions import IsCustomer, IsDriver, IsAdmin
+from django.contrib.gis.geos import Point
+from django.contrib.gis.measure import D
+import math
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """Calculate distance between two coordinates using Haversine formula"""
+    R = 6371  # Earth's radius in km
+    
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+    
+    a = math.sin(delta_lat/2) * math.sin(delta_lat/2) + \
+        math.cos(lat1_rad) * math.cos(lat2_rad) * \
+        math.sin(delta_lon/2) * math.sin(delta_lon/2)
+    
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    distance = R * c
+    
+    return distance
 
 class BookingListCreateView(generics.ListCreateAPIView):
-    """List bookings or create new booking"""
+    """List all bookings or create a new booking"""
     
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -29,7 +50,7 @@ class BookingListCreateView(generics.ListCreateAPIView):
             return Booking.objects.filter(customer=user)
         elif user.user_type == 'driver':
             return Booking.objects.filter(driver=user)
-        else:  # admin
+        else:
             return Booking.objects.all()
     
     def get_serializer_class(self):
@@ -38,15 +59,33 @@ class BookingListCreateView(generics.ListCreateAPIView):
         return BookingSerializer
     
     def perform_create(self, serializer):
-        """Create booking for logged-in customer"""
+        """Create booking with professional pricing"""
         if self.request.user.user_type != 'customer':
             raise PermissionError("Only customers can create bookings")
         
-        # Add default values
+        # Get the data
+        data = self.request.data
+        
+        # Calculate distance if coordinates are provided
+        distance_km = None
+        pickup_lat = data.get('pickup_latitude')
+        pickup_lng = data.get('pickup_longitude')
+        dropoff_lat = data.get('dropoff_latitude')
+        dropoff_lng = data.get('dropoff_longitude')
+        
+        if pickup_lat and pickup_lng and dropoff_lat and dropoff_lng:
+            try:
+                distance_km = calculate_distance(
+                    float(pickup_lat), float(pickup_lng),
+                    float(dropoff_lat), float(dropoff_lng)
+                )
+            except (ValueError, TypeError):
+                distance_km = 10  # Default if calculation fails
+        
+        # Create booking with customer and calculated distance
         booking = serializer.save(
             customer=self.request.user,
-            base_fare=100,  # Default base fare
-            total_amount=100  # Initial total amount
+            distance_km=distance_km
         )
         
         # Create history entry
@@ -54,7 +93,7 @@ class BookingListCreateView(generics.ListCreateAPIView):
             booking=booking,
             status='pending',
             changed_by=self.request.user,
-            notes='Booking created'
+            notes=f'Booking created with total: Rs. {booking.total_amount}'
         )
 
 class BookingDetailView(generics.RetrieveUpdateAPIView):
