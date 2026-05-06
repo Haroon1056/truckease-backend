@@ -5,15 +5,16 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.db import IntegrityError
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.admin.views.decorators import staff_member_required
+from django.urls import reverse
 from .models import User
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
-
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 import traceback
 import sys
+
+# ============ DEBUG VIEWS (Optional - can be removed in production) ============
 
 @csrf_exempt
 def debug_admin_error(request):
@@ -21,10 +22,8 @@ def debug_admin_error(request):
     try:
         from django.contrib import admin
         from django.contrib.admin.sites import site
-        from django.contrib.auth.forms import UserCreationForm
         from .models import User
         
-        # Get the admin class for User
         user_admin = site._registry.get(User)
         
         if not user_admin:
@@ -33,11 +32,8 @@ def debug_admin_error(request):
                 'message': 'User model is not registered in admin'
             }, status=500)
         
-        # Try to create the form using the admin's get_form method
         try:
-            # Get the form class that the admin uses
             form_class = user_admin.get_form(request)
-            # Try to instantiate it
             form = form_class()
             
             return JsonResponse({
@@ -48,7 +44,6 @@ def debug_admin_error(request):
                 'message': 'Admin form created successfully'
             })
         except Exception as form_error:
-            # Capture the actual admin form error
             return JsonResponse({
                 'status': 'error',
                 'error_type': type(form_error).__name__,
@@ -59,7 +54,6 @@ def debug_admin_error(request):
             }, status=500)
             
     except Exception as e:
-        # Capture the full error
         error_details = {
             'error_type': type(e).__name__,
             'error_message': str(e),
@@ -68,9 +62,7 @@ def debug_admin_error(request):
             'django_version': __import__('django').get_version()
         }
         return JsonResponse(error_details, status=500)
-    
-from django.http import HttpResponse
-from django.contrib.admin.views.decorators import staff_member_required
+
 
 @staff_member_required
 def simple_admin_test(request):
@@ -78,9 +70,6 @@ def simple_admin_test(request):
     try:
         from django.contrib import admin
         from .models import User
-        
-        # Try to get the admin URL for adding a user
-        from django.urls import reverse
         
         return HttpResponse(f"""
         <html>
@@ -95,6 +84,9 @@ def simple_admin_test(request):
         """)
     except Exception as e:
         return HttpResponse(f"Error: {e}", status=500)
+
+
+# ============ AUTHENTICATION VIEWS ============
 
 class RegisterView(APIView):
     """User registration view"""
@@ -147,6 +139,7 @@ class RegisterView(APIView):
                 'detail': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
 
+
 class LoginView(APIView):
     """User login view"""
     permission_classes = [AllowAny]
@@ -163,6 +156,12 @@ class LoginView(APIView):
                 user = authenticate(username=email, password=password)
                 
                 if user:
+                    # Check if user is active
+                    if not user.is_active:
+                        return Response({
+                            'error': 'Your account is disabled. Please contact support.'
+                        }, status=status.HTTP_401_UNAUTHORIZED)
+                    
                     # Generate JWT tokens
                     refresh = RefreshToken.for_user(user)
                     
@@ -195,6 +194,7 @@ class LoginView(APIView):
                 'detail': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
 
+
 class ProfileView(APIView):
     """Get and update user profile"""
     permission_classes = [IsAuthenticated]
@@ -214,3 +214,10 @@ class ProfileView(APIView):
             return Response(serializer.data)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ============ TOKEN REFRESH VIEW ============
+# Note: You can also use the built-in TokenRefreshView from rest_framework_simplejwt
+# Add this to urls.py if you want a dedicated refresh endpoint:
+# from rest_framework_simplejwt.views import TokenRefreshView
+# path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
