@@ -28,10 +28,22 @@ class RegisterSerializer(serializers.ModelSerializer):
         return data
     
     def create(self, validated_data):
+        # Remove confirm_password
         validated_data.pop('confirm_password')
+        
+        # Extract password
         password = validated_data.pop('password')
         
-        user = User.objects.create_user(**validated_data)
+        # Create user - explicitly pass password
+        user = User.objects.create_user(
+            email=validated_data['email'],
+            password=password,
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+            user_type=validated_data.get('user_type', 'customer'),
+            phone_number=validated_data.get('phone_number', '')
+        )
+        
         return user
 
 class LoginSerializer(serializers.Serializer):
